@@ -17,7 +17,7 @@ data stream contains, and how to extend the decoder for new packet types or sens
 
 ## Credits
 
-The protocol understanding in this codebase builds directly on two open-source reverse-engineering
+The protocol understanding in this codebase builds directly on two community reverse-engineering
 projects, and the Swift code ports their findings:
 
 | Project | Generation | What it contributed |

@@ -374,7 +374,7 @@ good faith.
 
 ## 7. Credits
 
-The protocol and persistence work NOOP builds on is open-source reverse-engineering of
+The protocol and persistence work NOOP builds on is community reverse-engineering of
 hardware the user owns, used for interoperability:
 
 - **`johnmiddleton12/my-whoop`** — the WHOOP 4.0 BLE framing/command/decode work and

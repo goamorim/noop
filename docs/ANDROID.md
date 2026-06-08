@@ -576,7 +576,7 @@ against a real build, a real device, and a real strap.
 
 ## Credits
 
-The Android client re-implements protocol and behavior built on prior open-source
+The Android client re-implements protocol and behavior built on prior community
 reverse-engineering and interoperability work:
 
 - **`johnmiddleton12/my-whoop`** — WHOOP 4.0 BLE protocol; the `WhoopProtocol` / `WhoopStore`

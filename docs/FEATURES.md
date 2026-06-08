@@ -12,7 +12,7 @@ reference implementation; iOS and Android apps are planned.
 > respiration, skin temperature) is an approximation, not a clinical reading, and must not be
 > used to diagnose, treat or make health decisions.
 
-NOOP is built on open-source reverse-engineering work, with thanks to:
+NOOP is built on community reverse-engineering work, with thanks to:
 
 | Project | Contribution |
 | --- | --- |
@@ -451,7 +451,7 @@ needs at least 14 days of history. It is informational only — **not** a diagno
   manual override). These power your zones, calorie estimates and recovery baselines.
 - **Strap** — connection status, battery, and Re-scan / Disconnect controls.
 - **About** — version, the "all your data, none of the cloud" note, a **medical disclaimer**, and
-  attribution to the open-source protocols NOOP is built on.
+  attribution to the community protocols NOOP is built on.
 
 ---
 
@@ -470,7 +470,7 @@ feed, refresh battery, scan/reconnect, or disconnect.
 
 `SupportView.swift`:
 
-- **Built on** — credit to the open-source reverse-engineering projects NOOP stands on.
+- **Built on** — credit to the community reverse-engineering projects NOOP stands on.
 - **Donate (optional)** — never a paywall; the whole app works without it. Copy-to-clipboard
   crypto addresses (Bitcoin, Cardano, Ethereum, XRP) for anyone who wants to chip in toward
   future work (Windows, the Android app, new features). The app never asks again.

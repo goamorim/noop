@@ -104,7 +104,7 @@ rpvijHi2nVY9WWAJhojsAX5tJmHdmLtFhq
 - **Not a subscription.** One-off, whenever you like, never recurring.
 - **Not required.** Every feature works fully without paying anything.
 - **Not a license.** You don't owe anything to use, fork, or build NOOP — see
-  [`../ATTRIBUTION.md`](../ATTRIBUTION.md) for the open-source work it stands on.
+  [`../ATTRIBUTION.md`](../ATTRIBUTION.md) for the upstream community work it stands on.
 - **Not tied to your data.** NOOP has no server and no account. There is nothing
   to "unlock" and no record of who has or hasn't donated.
 
@@ -118,7 +118,7 @@ help moves the project forward as much as anything.
 
 ## A note on the project
 
-NOOP is built on prior open-source reverse-engineering — chiefly
+NOOP is built on prior community reverse-engineering — chiefly
 [`johnmiddleton12/my-whoop`](https://github.com/johnmiddleton12/my-whoop) (WHOOP
 4.0 protocol) and [`b-nnett/goose`](https://github.com/b-nnett/goose) (WHOOP 5.0
 protocol). It exists so that someone who owns a WHOOP strap can read their own

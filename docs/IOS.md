@@ -13,7 +13,7 @@ for a native iOS app target.
 > and not clinically validated.
 
 The reverse-engineering that makes any of this possible is built on prior
-open-source work: the WHOOP 4.0 protocol from **`johnmiddleton12/my-whoop`** and
+community work: the WHOOP 4.0 protocol from **`johnmiddleton12/my-whoop`** and
 the WHOOP 5.0 / MG protocol from **`b-nnett/goose`**. See [`../ATTRIBUTION.md`](../ATTRIBUTION.md).
 
 ---

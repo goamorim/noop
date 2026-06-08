@@ -51,7 +51,7 @@ A few principles run through the whole codebase. Internalize them before opening
    [The BLE safety contract](#the-ble-safety-contract-read-this-before-touching-bluetooth).
 4. **Transparent math.** Analytics are approximations of published methods, documented file by file.
    No black boxes, no claims of clinical accuracy, no reproduction of any proprietary model.
-5. **Credit upstream.** The protocol work is built on prior open-source reverse-engineering —
+5. **Credit upstream.** The protocol work is built on prior community reverse-engineering —
    `johnmiddleton12/my-whoop` (WHOOP 4.0) and `b-nnett/goose` (WHOOP 5.0). Preserve those credits in
    code comments and in [`../ATTRIBUTION.md`](../ATTRIBUTION.md).
 
@@ -456,6 +456,9 @@ Schema lives in `Packages/WhoopStore/Sources/WhoopStore/Database.swift` as a **v
 - **No proprietary material.** Don't add WHOOP firmware, decompiled app code, logos, or assets, and
   don't introduce DRM circumvention. Keep contributions to clean-room interoperability with hardware
   the user owns.
+- **Licensing.** By opening a pull request you agree your contribution is licensed under the same
+  [PolyForm Noncommercial License 1.0.0](../LICENSE) as the rest of NOOP. Forks and personal,
+  non-commercial use are welcome under those terms.
 
 ---
 

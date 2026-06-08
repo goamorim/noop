@@ -11,6 +11,7 @@
   <img alt="Local first" src="https://img.shields.io/badge/local-first-18C98B?style=flat-square">
   <img alt="Account free" src="https://img.shields.io/badge/account-free-2FE6A8?style=flat-square">
   <img alt="WHOOP 4 and 5" src="https://img.shields.io/badge/works%20with-WHOOP%204.0%20%26%205.0-8B9690?style=flat-square">
+  <a href="LICENSE"><img alt="License: PolyForm Noncommercial 1.0.0" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-8B9690?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -46,7 +47,7 @@ own device in SQLite, imports your existing WHOOP and Apple Health history, and
 computes recovery, strain, HRV, and sleep **locally**, with no WHOOP account and
 no WHOOP cloud.
 
-It is built on prior open-source reverse-engineering work and exists for one
+It is built on prior community reverse-engineering work and exists for one
 reason: to let someone who owns a WHOOP strap read **their own biometric data**
 from **their own device**, on a machine **they** control.
 
@@ -71,6 +72,7 @@ from **their own device**, on a machine **they** control.
 - [Attribution](#attribution)
 - [Support (optional)](#support-optional)
 - [Disclaimer](#disclaimer)
+- [License](#license)
 - [Docs](#docs)
 
 ---
@@ -346,7 +348,7 @@ device and never leave it.
 
 ## Attribution
 
-NOOP stands on open-source reverse-engineering and interoperability work. With
+NOOP stands on community reverse-engineering and interoperability work. With
 thanks:
 
 - **`johnmiddleton12/my-whoop`** — the WHOOP 4.0 BLE protocol; the `WhoopProtocol`
@@ -389,6 +391,23 @@ professional.
 
 Provided **as-is**, with **no warranty**, for **personal and educational use**. You
 use it at your own risk. Read the full notice in [`DISCLAIMER.md`](DISCLAIMER.md).
+
+---
+
+## License
+
+NOOP is **source-available** under the [PolyForm Noncommercial License 1.0.0](LICENSE):
+**free for personal and other non-commercial use** — read it, run it, fork it, and
+contribute. Commercial use is not granted by this license. (PolyForm Noncommercial is
+a proper software license with patent terms; it is deliberately *not* an OSI
+"open-source" licence, because that would permit the commercial use this project's
+non-commercial nature rules out.)
+
+The license covers NOOP's own original code and docs. Protocol facts (frame layouts,
+command numbers, byte offsets) are uncopyrightable and free to reuse; bundled
+dependencies keep their own licenses (GRDB.swift and ZIPFoundation are MIT — see
+[`NOTICE`](NOTICE)). By opening a pull request you agree your contribution is licensed
+under the same terms — see [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md).
 
 ---
 

@@ -312,7 +312,7 @@ xcodebuild -project Strand.xcodeproj -scheme Strand -destination 'platform=macOS
 
 ## Credits
 
-NOOP builds on prior open-source reverse-engineering and interoperability work:
+NOOP builds on prior community reverse-engineering and interoperability work:
 
 - **`johnmiddleton12/my-whoop`** — WHOOP 4.0 BLE protocol; the `WhoopProtocol` and `WhoopStore`
   packages are adapted from this work.
