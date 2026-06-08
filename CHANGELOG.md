@@ -17,6 +17,24 @@ approximate; downloads are on the [Releases](https://github.com/NoopApp/noop/rel
 
 ---
 
+## 1.31 — No HR spike on resume
+
+- **Fixed: heart rate briefly showed a stale ~100 bpm when you reopened the app / returned to Live,
+  then drifted down** (issue #46). The hero number is the **median of a short smoothing window**
+  (macOS `AppModel.hrWindow`, a 10s/40-sample buffer; Android `AppViewModel.hrWindow`, a 5-sample
+  deque). The window was only ever cleared on explicit disconnect — never on resume or BLE re-attach.
+  Since the strap only notifies every ~30s, on reopen the window still held the pre-gap samples (from
+  when the user's real HR was higher) and republished that stale median until fresh low samples
+  refilled it. The strap itself was never wrong (the #46 log never exceeds 75 bpm — the spike was
+  entirely in the display layer).
+- **Fix:** added a `resetSmoothing()` (clears the window, blanks `bpm` → `—`) and call it from the
+  resume hook on each platform — `AppModel.startRealtimeHR()` / `AppViewModel.requestRealtimeHr()`.
+  These fire on Live/Health screen entry, **not** on the 30s keep-alive re-arm (which goes straight to
+  `ble.startRealtime()`), so steady-state smoothing is untouched; the hero shows `—` only for the brief
+  moment until the first fresh reading lands, then shows the truthful value. Mirrors the existing
+  `disconnect()` clear. Verified every `bpm` reader is nil-safe (zone coaching, breathe, menu bar).
+- Both platforms get the real fix (the bug was present on each; only the recovery time differed).
+
 ## 1.30 — Workouts: correct source pill for Health Connect (Android)
 
 - **Fixed (Android): Health Connect workouts showed an "Apple" pill in the Workouts list's Src

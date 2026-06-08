@@ -122,6 +122,16 @@ final class AppModel: ObservableObject {
         evaluateStress()
     }
 
+    /// Drop the smoothing window and blank the hero number so a resume / re-attach shows "—"
+    /// until a genuinely fresh sample arrives, instead of republishing the stale pre-gap median.
+    /// Called on Live-tab entry / manual Start HR (see `startRealtimeHR`), NOT on the 30s keep-alive
+    /// re-arm — so steady-state smoothing is untouched. Fixes #46 (HR jumped to a stale ~100 on
+    /// reopen, then "slowly came back down" as fresh low samples refilled the window).
+    func resetSmoothing() {
+        hrWindow.removeAll()
+        bpm = nil
+    }
+
     /// Experimental resting stress nudge: track RMSSD vs a slow baseline; when HRV drops well below
     /// baseline while HR is calm (not exercising), buzz once — rate-limited to once / 15 min. Off by
     /// default; conservative so it rarely false-fires.
@@ -167,7 +177,13 @@ final class AppModel: ObservableObject {
     func prepareStrapSwitch() { ble.prepareForModelSwitch() }
 
     /// Enable the realtime stream + mark it wanted so the keep-alive re-arms it (can't lapse).
-    func startRealtimeHR() { ble.startRealtime() }
+    /// Blanks the stale smoothing window first (#46): on Live-tab entry / resume we don't want the
+    /// pre-gap median republished, so the hero shows "—" until a fresh sample lands. The keep-alive
+    /// re-arm goes through `ble.startRealtime()` directly, NOT here, so steady-state is untouched.
+    func startRealtimeHR() {
+        resetSmoothing()
+        ble.startRealtime()
+    }
     /// Stop the realtime stream (the lightweight 0x2A37 HR keeps recording regardless).
     func stopRealtimeHR() { ble.stopRealtime() }
     /// Ask the strap for a fresh battery reading.
