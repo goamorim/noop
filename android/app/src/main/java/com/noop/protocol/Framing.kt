@@ -44,6 +44,15 @@ private fun ByteArray.u32(off: Int): Long? {
 class Reassembler {
     private val buf = ArrayList<Byte>()
 
+    /**
+     * Drop any partial-frame remnant. Called on (re)connect so a stalled or garbage frame from one
+     * session can't wedge the live stream in the next. The macOS BLEManager achieves the same by
+     * reassigning a fresh `Reassembler` on every connect (BLEManager.swift:183).
+     */
+    fun reset() {
+        buf.clear()
+    }
+
     /** Feed one fragment; return zero or more complete frames now available, in order. */
     fun feed(fragment: ByteArray): List<ByteArray> {
         for (b in fragment) buf.add(b)
@@ -61,12 +70,25 @@ class Reassembler {
             if (buf.size < 4) break
             val length = (buf[1].toInt() and 0xFF) or ((buf[2].toInt() and 0xFF) shl 8)
             val total = length + 4
+            if (total > MAX_FRAME_BYTES) {
+                // A corrupt or misaligned SOF decodes an impossibly large length and we'd wait forever
+                // for bytes that can never arrive over BLE — the live stream would freeze until a
+                // reconnect. The largest real WHOOP frame is ~1920 B, so anything past the 8 KB ceiling
+                // is garbage: drop this 0xAA and resync to the next one.
+                buf.removeAt(0)
+                continue
+            }
             if (buf.size < total) break
             val frame = ByteArray(total) { buf[it] }
             out.add(frame)
             repeat(total) { buf.removeAt(0) }
         }
         return out
+    }
+
+    private companion object {
+        /** ~4× the largest observed WHOOP frame (~1920 B raw/historical); above this is a bad length. */
+        const val MAX_FRAME_BYTES = 8192
     }
 }
 

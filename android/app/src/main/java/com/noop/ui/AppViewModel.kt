@@ -181,11 +181,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Toggle the strap's real-time HR stream on. */
-    fun startRealtimeHr() = ble.send(CommandNumber.TOGGLE_REALTIME_HR, byteArrayOf(1))
+    /** Start the strap's real-time HR stream and keep it re-armed (the client's keep-alive owns it now). */
+    fun startRealtimeHr() = ble.startRealtime()
 
-    /** Toggle the strap's real-time HR stream off. */
-    fun stopRealtimeHr() = ble.send(CommandNumber.TOGGLE_REALTIME_HR, byteArrayOf(0))
+    /** Stop the strap's real-time HR stream. */
+    fun stopRealtimeHr() = ble.stopRealtime()
 
     /** Ask the strap for its current battery level. */
     fun getBattery() = ble.send(CommandNumber.GET_BATTERY_LEVEL)

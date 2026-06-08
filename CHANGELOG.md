@@ -17,6 +17,20 @@ approximate; downloads are on the [Releases](https://github.com/NoopApp/noop/rel
 
 ---
 
+## 1.4 — Live heart rate that doesn't freeze
+
+- **Fixed: live heart rate freezing mid-session.** The WHOOP firmware lets its realtime stream lapse
+  if it isn't periodically re-armed, which left heart rate stuck on a stale number while the strap was
+  still "connected" — the only fix was a manual disconnect/reconnect. NOOP now runs a 30-second
+  keep-alive that re-arms the realtime stream, re-subscribes a dropped notification, and — if nothing
+  has arrived for two minutes — reconnects on its own. This ports the macOS app's existing keep-alive
+  to Android, so the two platforms behave the same.
+- **Fixed: a corrupt Bluetooth packet could wedge the live stream.** The frame reader now rejects an
+  impossible frame length and resyncs to the next packet, and starts each connection from a clean
+  buffer, so a single bad packet can't freeze the stream until you reconnect.
+
+---
+
 ## 1.3 — Stays connected in the background
 
 - **New: keeps your strap connected when the app is closed.** On Android, NOOP runs a quiet ongoing

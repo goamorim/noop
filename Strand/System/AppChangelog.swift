@@ -7,7 +7,7 @@ enum AppChangelog {
 
     /// Bump this when you add a release below. The "What's New" sheet shows automatically when the
     /// stored last-seen version is behind this. (Decoupled from the bundle version on purpose.)
-    static let currentVersion = "1.3"
+    static let currentVersion = "1.4"
 
     struct Release: Identifiable {
         let version: String
@@ -19,6 +19,14 @@ enum AppChangelog {
 
     /// Newest first.
     static let releases: [Release] = [
+        Release(
+            version: "1.4",
+            title: "Live heart rate that doesn't freeze",
+            date: "June 2026",
+            items: [
+                "Fixed live heart rate freezing on a stale number mid-session. NOOP now keeps the strap's realtime stream re-armed and, if the link goes quiet, quietly reconnects on its own — no more disconnect-and-reconnect by hand to un-stick it. (Android now matches how the Mac app already behaved.)",
+                "Hardened the Bluetooth frame reader so a single corrupt packet can't wedge the live stream until you reconnect.",
+            ]),
         Release(
             version: "1.3",
             title: "Stays connected in the background",

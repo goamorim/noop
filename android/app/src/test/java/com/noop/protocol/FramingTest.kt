@@ -240,6 +240,34 @@ class FramingTest {
         assertArrayEquals(frame, out[0])
     }
 
+    @Test
+    fun reassembler_garbageLengthDoesNotStall_resyncsToNextFrame() {
+        // A misaligned/corrupt SOF with an impossibly large declared length (0xFFFF -> 65539 bytes)
+        // must NOT wedge the stream waiting for bytes that can never arrive over BLE. The reassembler
+        // should drop the bad SOF and recover the real frame that follows. (This is the live-HR-freeze
+        // failure mode: without the guard, every later frame — including HR — is silently dropped.)
+        val good = Framing.buildCommand(CommandNumber.GET_BATTERY_LEVEL, byteArrayOf(0), seq = 0)
+        val garbage = byteArrayOf(0xAA.toByte(), 0xFF.toByte(), 0xFF.toByte(), 0x00)
+        val r = Reassembler()
+        val out = r.feed(garbage + good)
+        assertEquals(1, out.size)
+        assertArrayEquals(good, out[0])
+    }
+
+    @Test
+    fun reassembler_resetDropsPartialFrame() {
+        // reset() (called on every reconnect) must discard a buffered half-frame, so the stale bytes
+        // can't corrupt the first frame of the next session.
+        val frame = Framing.buildCommand(CommandNumber.GET_BATTERY_LEVEL, byteArrayOf(0), seq = 0)
+        val r = Reassembler()
+        val cut = frame.size / 2
+        assertTrue(r.feed(frame.copyOfRange(0, cut)).isEmpty())
+        r.reset()
+        val out = r.feed(frame)
+        assertEquals(1, out.size)
+        assertArrayEquals(frame, out[0])
+    }
+
     // MARK: - enum fromRaw
 
     @Test

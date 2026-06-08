@@ -184,6 +184,16 @@ class WhoopBleClient(
         /** Deferral before the first connect-time offload, so SET_CLOCK/GET_DATA_RANGE round-trip first. */
         private const val INITIAL_BACKFILL_DELAY_MS = 1_500L
 
+        // MARK: Live-stream keep-alive (port of BLEManager.keepAlive*). The WHOOP firmware lets the
+        // realtime HR stream lapse if it isn't re-armed, so a stuck-on-stale HR that only a manual
+        // disconnect/reconnect fixes is really a missing keep-alive. We re-arm + poll battery every
+        // 30s, and bounce a truly silent link after 120s (the auto version of disconnect+reconnect).
+        private const val KEEPALIVE_INTERVAL_MS = 30_000L
+        /** No inbound data for this long ⇒ the link/stream stalled; bounce it to resume streaming. */
+        private const val KEEPALIVE_STALL_MS = 120_000L
+        /** Stream gone quiet this long (but not yet stall) ⇒ re-subscribe in case a CCCD silently dropped. */
+        private const val KEEPALIVE_QUIET_MS = 45_000L
+
         /**
          * True when a frame is part of the historical offload (HISTORICAL_DATA=47, EVENT=48,
          * METADATA=49, CONSOLE_LOGS=50) rather than the live stream (REALTIME_DATA=40,
@@ -245,7 +255,10 @@ class WhoopBleClient(
     /** Runs the connect handshake EXACTLY ONCE per connection (Swift `connectHandshakeDone`). */
     private var connectHandshakeDone = false
 
-    /** True when the user asked to disconnect; suppresses the auto-rescan (Swift `intentionalDisconnect`). */
+    /** True when the user asked to disconnect; suppresses the auto-rescan (Swift `intentionalDisconnect`).
+     *  Written on the main looper (connect/disconnect/keep-alive bounce) and read on the GATT binder
+     *  thread (handleDisconnect), so it must be @Volatile for cross-thread visibility. */
+    @Volatile
     private var intentionalDisconnect = false
     /// The strap family the user chose to pair, remembered so an auto-reconnect after a
     /// dropout re-scans for the same model instead of falling back to WHOOP 4.0.
@@ -332,6 +345,15 @@ class WhoopBleClient(
     /** Periodic re-offload + idle-watchdog tokens (handler-posted; cancelled on disconnect). */
     private val periodicBackfillRunnable = Runnable { triggerPeriodicBackfill() }
     private val backfillTimeoutRunnable = Runnable { onBackfillTimeout() }
+
+    /** Live-stream keep-alive (port of BLEManager.keepAliveTimer): re-arms realtime, polls battery,
+     *  and bounces a stalled link. Handler-posted on every connect handshake; cancelled in reset(). */
+    private val keepAliveRunnable = Runnable { keepAliveFire() }
+    private var keepAliveTick = 0
+    /** True while the Live screen wants the realtime HR stream; the keep-alive re-arms it so it can't lapse. */
+    @Volatile private var wantsRealtime = false
+    /** Wall-clock of the last inbound notification — drives the keep-alive liveness watchdog. */
+    @Volatile private var lastDataAtMs = 0L
 
     /**
      * Pending outbound writes. Android's GATT stack allows ONE in-flight write at a time:
@@ -667,6 +689,7 @@ class WhoopBleClient(
     // ====================================================================================
 
     private fun onInbound(uuid: UUID, bytes: ByteArray) {
+        lastDataAtMs = System.currentTimeMillis()   // feeds the keep-alive liveness watchdog
         when (uuid) {
             HEART_RATE_CHAR -> parseStandardHr(bytes)               // 0x2A37
             BATTERY_CHAR -> bytes.firstOrNull()?.let {              // 0x2A19 = percent
@@ -810,6 +833,10 @@ class WhoopBleClient(
             if (connectedFamily != DeviceFamily.WHOOP4 && !_state.value.bonded) {
                 _state.value = _state.value.copy(bonded = true)
                 log("WHOOP 5/MG: live HR streaming — marking the link established (experimental).")
+                // 5/MG has no WHOOP4 confirmed-write handshake, so the keep-alive (re-subscribe +
+                // 120s liveness bounce) is started here, on the bonded transition, instead of in
+                // runConnectHandshake. Handler.postDelayed is thread-safe to call from this callback.
+                startKeepAlive()
             }
         }
 
@@ -852,6 +879,103 @@ class WhoopBleClient(
         backfillStarted = true
         handler.postDelayed({ requestSync() }, INITIAL_BACKFILL_DELAY_MS)
         startBackfillTimer()
+        startKeepAlive()
+    }
+
+    // ====================================================================================
+    // MARK: Live-stream keep-alive  (port of BLEManager.startKeepAlive / keepAliveFire)
+    // ====================================================================================
+
+    /** (Re)start the 30s keep-alive. Called from the connect handshake; cancelled in [reset]. */
+    private fun startKeepAlive() {
+        handler.removeCallbacks(keepAliveRunnable)
+        keepAliveTick = 0
+        lastDataAtMs = System.currentTimeMillis()   // arm the watchdog from "now", not 1970
+        handler.postDelayed(keepAliveRunnable, KEEPALIVE_INTERVAL_MS)
+    }
+
+    private fun stopKeepAlive() {
+        handler.removeCallbacks(keepAliveRunnable)
+    }
+
+    /**
+     * Keep the live stream alive (port of `BLEManager.keepAliveFire`). The WHOOP firmware lets the
+     * realtime HR stream lapse if it isn't periodically re-armed, and a CCCD can silently drop — both
+     * leave HR frozen on a stale value while the GATT link still says "connected", which is exactly
+     * what people hit ("only a disconnect/reconnect un-sticks it"). Every 30s we:
+     *   1. bounce the link if NOTHING has arrived for >120s (the automatic disconnect+reconnect), or
+     *   2. re-subscribe if the stream just went quiet, re-arm realtime HR, and poll battery.
+     */
+    @SuppressLint("MissingPermission")
+    private fun keepAliveFire() {
+        val s = _state.value
+        if (!s.connected || !s.bonded) return   // disconnected: stop the cadence (restarts on reconnect)
+
+        val silentMs = System.currentTimeMillis() - lastDataAtMs
+        // Everything below is the LIVE-path keep-alive. During a historical offload the strap owns the
+        // link and has its own 60s idle watchdog (backfillTimeoutRunnable), so we stay completely out
+        // of the way — in particular we must NOT bounce, which would abandon the offload mid-session
+        // and break the safe-trim cursor.
+        if (!backfilling) {
+            if (silentMs > KEEPALIVE_STALL_MS) {
+                // Nothing for >120s — the live stream/link stalled. Bounce it: the auto-rescan on
+                // disconnect re-bonds and resumes streaming (the automatic version of the manual fix).
+                log("No data for ${silentMs / 1000}s — bouncing link to resume live stream")
+                intentionalDisconnect = false    // make sure the auto-reconnect fires
+                gatt?.disconnect()               // → handleDisconnect → reset() (cancels this) → reconnect
+            } else {
+                // Recover a silently-dropped subscription once the stream has gone quiet (any family).
+                if (silentMs > KEEPALIVE_QUIET_MS) enableLiveNotifications()
+                // WHOOP 4.0 only: re-arm realtime HR so the firmware can't let it lapse (while the Live
+                // screen wants it), and poll battery (~60s) — which also keeps the link warm. A 5/MG
+                // strap rejects WHOOP4-framed commands, so we skip them and rely on re-subscribe + bounce.
+                if (connectedFamily == DeviceFamily.WHOOP4) {
+                    if (wantsRealtime) send(CommandNumber.TOGGLE_REALTIME_HR, byteArrayOf(1))
+                    keepAliveTick += 1
+                    if (keepAliveTick % 2 == 0) send(CommandNumber.GET_BATTERY_LEVEL)
+                }
+            }
+        }
+
+        // Always re-arm the cadence. After a bounce the pending disconnect cancels this via reset(); a
+        // tick that fires while disconnected returns early above — so the keep-alive is never orphaned.
+        handler.postDelayed(keepAliveRunnable, KEEPALIVE_INTERVAL_MS)
+    }
+
+    /**
+     * Re-enable notifications on the live characteristics — recovers a CCCD subscription the stack
+     * silently dropped. [drainCccdQueue] writes them one at a time; draining to empty is a no-op for
+     * [startSession] (sessionStarted is already true), so this never re-fires the bond/hello.
+     */
+    @SuppressLint("MissingPermission")
+    private fun enableLiveNotifications() {
+        val g = gatt ?: return
+        when (connectedFamily) {
+            DeviceFamily.WHOOP4 -> g.getService(WHOOP4_SERVICE)?.let { svc ->
+                svc.getCharacteristic(CMD_NOTIFY_CHAR)?.let { cccdQueue.add(it) }
+                svc.getCharacteristic(EVENT_NOTIFY_CHAR)?.let { cccdQueue.add(it) }
+                svc.getCharacteristic(DATA_NOTIFY_CHAR)?.let { cccdQueue.add(it) }
+            }
+            DeviceFamily.WHOOP5 -> { /* 5/MG live HR rides the standard profile, re-subscribed below */ }
+        }
+        g.getService(HEART_RATE_SERVICE)?.getCharacteristic(HEART_RATE_CHAR)?.let { cccdQueue.add(it) }
+        g.getService(BATTERY_SERVICE)?.getCharacteristic(BATTERY_CHAR)?.let { cccdQueue.add(it) }
+        drainCccdQueue(g)
+    }
+
+    /**
+     * The Live screen wants realtime HR. Remember it ([wantsRealtime]) so the keep-alive keeps
+     * re-arming the stream so it can't lapse, and kick it now. Port of `BLEManager.startRealtime`.
+     */
+    fun startRealtime() {
+        wantsRealtime = true
+        if (connectedFamily == DeviceFamily.WHOOP4) send(CommandNumber.TOGGLE_REALTIME_HR, byteArrayOf(1))
+    }
+
+    /** The Live screen no longer needs realtime HR; stop re-arming it. Port of `BLEManager.stopRealtime`. */
+    fun stopRealtime() {
+        wantsRealtime = false
+        if (connectedFamily == DeviceFamily.WHOOP4) send(CommandNumber.TOGGLE_REALTIME_HR, byteArrayOf(0))
     }
 
     /**
@@ -1313,9 +1437,13 @@ class WhoopBleClient(
         strapNewestTs = null
         handler.removeCallbacks(backfillTimeoutRunnable)
         stopBackfillTimer()
-        // NOTE: the Reassembler is intentionally NOT reset here — the Swift BLEManager reuses a
-        // single `let reassembler` instance across reconnects too. Its SOF-resync loop (firstIndex
-        // of 0xAA) self-recovers from any partial-frame remnant on the next fragment.
+        stopKeepAlive()
+
+        // Fresh reassembler per connection. The macOS BLEManager reassigns a NEW Reassembler on each
+        // connect (BLEManager.swift:183); matching that here stops a partial/garbage frame left over
+        // from one session wedging the live stream after a reconnect (so the keep-alive's link-bounce
+        // actually recovers a frozen stream).
+        reassembler.reset()
     }
 
     /**
