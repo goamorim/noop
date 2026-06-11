@@ -7,7 +7,7 @@ enum AppChangelog {
 
     /// Bump this when you add a release below. The "What's New" sheet shows automatically when the
     /// stored last-seen version is behind this. (Decoupled from the bundle version on purpose.)
-    static let currentVersion = "1.87"
+    static let currentVersion = "1.88"
 
     struct Release: Identifiable {
         let version: String
@@ -19,6 +19,14 @@ enum AppChangelog {
 
     /// Newest first.
     static let releases: [Release] = [
+        Release(
+            version: "1.88",
+            title: "Smoother Explore charts, and a clearer way to connect a WHOOP 5.0/MG",
+            date: "June 2026",
+            items: [
+                "Fixed (Mac): the Explore chart no longer flickers or re-animates its line when you move the cursor across a card. The v1.77 fix caught one cause; a second remained — the card surface was animating its hover transition over its whole contents, the chart included — now scoped to just the card's border and shadow. (#104)",
+                "Improved (Mac and Android): connecting a WHOOP 5.0/MG is clearer. macOS first-run setup now asks you to pick your strap model first instead of defaulting to a WHOOP 4.0 scan, and selecting WHOOP 5.0/MG (both platforms) shows an inline note that it pairs with one app at a time — so if a scan finds nothing, free it in the official WHOOP app and try again. (#130)",
+            ]),
         Release(
             version: "1.87",
             title: "Deep sleep that happens later in the night no longer reads 0 minutes",

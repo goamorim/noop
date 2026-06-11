@@ -17,6 +17,19 @@ approximate; downloads are on the [Releases](https://github.com/NoopApp/noop/rel
 
 ---
 
+## 1.88 — Smoother Explore charts, and a clearer way to connect a WHOOP 5.0/MG
+
+- **Fixed (Mac):** the Explore chart no longer flickers or re-animates its line when you move the
+  cursor across a card. The v1.77 fix removed one cause; a second remained — the card surface was
+  animating its hover transition over its whole contents (the chart included) — now scoped to just the
+  card's border and shadow. (#104)
+- **Improved (Mac and Android):** connecting a WHOOP 5.0/MG is clearer. macOS first-run setup now asks
+  you to **pick your strap model first** instead of defaulting to a WHOOP 4.0 scan, and selecting
+  WHOOP 5.0/MG (both platforms) shows an inline note that it pairs with one app at a time — so if a
+  scan finds nothing, free it in the official WHOOP app and try again. (#130)
+
+---
+
 ## 1.87 — Deep sleep that happens later in the night no longer reads 0 minutes
 
 - **Fixed (Mac and Android):** follow-on to the deep-sleep fix. NOOP assumes deep sleep is
