@@ -72,3 +72,6 @@ export.zip
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Free-tier iOS sideload build artifacts (local only)
+project-ios-free.yml

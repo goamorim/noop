@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  FREE-tier entitlements for sideloading the NOOP iOS app with a free Apple ID.
+	  Deliberately omits:
+	    - com.apple.developer.healthkit            (a free Apple ID cannot provision it)
+	    - com.apple.security.application-groups     (the widget extension + its App Group
+	                                                 are dropped from the free build)
+	  The app degrades gracefully: HealthKitBridge guards on isHealthDataAvailable() and
+	  is only triggered by explicit user action; WidgetSnapshot.publish no-ops when the
+	  App Group suite is absent. BLE, all screens, charts, coach and the dark UI work fully.
+	-->
+</dict>
+</plist>
