@@ -311,10 +311,13 @@ public enum AnalyticsEngine {
     /// samples. A sample counts when (a) its timestamp falls inside a detected in-bed `sessions`
     /// span, (b) a concurrent HR sample reads a worn, alive BPM (the strap streams HR only
     /// on-wrist), and (c) the value is in the plausible worn range — so an on-charger interval
-    /// drifting to ambient can't poison the nightly mean. °C = raw/128 — the Swift decoder's
-    /// AS6221-native scale (Interpreter.swift skin_temp_raw@73), NOT the /100 the Android decoder
-    /// uses for the same register; using /100 here would put every real worn night (~33–35 °C)
-    /// outside the 28–42 gate. All values APPROXIMATE.
+    /// drifting to ambient can't poison the nightly mean. °C = raw/100 — the firmware stores
+    /// CENTIDEGREES in skin_temp_raw@73, not the AS6221's native 1/128 register units: the real
+    /// captures in Whoop5HistoricalTests read worn=3057 / off-wrist=2247, which under /100 are
+    /// 30.6 °C skin and 22.5 °C room ambient (physically right on both ends) but under /128 are
+    /// 23.9 °C and 17.6 °C — "skin" colder than any live wrist, and below the 28 °C worn gate, so
+    /// /128 silently dropped every real night (PR #97 review, tigercraft4; user report #166).
+    /// Matches the Android decoder's /100 for the same register. All values APPROXIMATE.
     static func wornNightlySkinTempC(_ sessions: [SleepSession],
                                      hr: [HRSample],
                                      skinTemp: [SkinTempSample],
@@ -327,7 +330,7 @@ public enum AnalyticsEngine {
         for t in skinTemp {
             if !wornSeconds.contains(t.ts) { continue }
             if !sessions.contains(where: { t.ts >= $0.start && t.ts <= $0.end }) { continue }
-            let c = Double(t.raw) / 128.0
+            let c = Double(t.raw) / 100.0
             if c < skinTempMinC || c > skinTempMaxC { continue }
             sum += c
             n += 1

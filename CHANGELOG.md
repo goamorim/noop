@@ -17,6 +17,24 @@ approximate; downloads are on the [Releases](https://github.com/NoopApp/noop/rel
 
 ---
 
+## 2.3.1 — Skin temperature unblocked on Mac/iOS, plus export fixes
+
+All from working through @tigercraft4's PR #97 code review (which deserved a much faster response
+than it got) and @sudden-break's logs on #156:
+
+- **Fixed (Mac and iOS):** strap **skin temperature was read on the wrong scale** (raw/128 instead of the
+  firmware's centidegrees), which made every real night look impossibly cold and silently discarded it —
+  so the nightly skin-temp deviation never appeared from strap data. Real nights now read correctly
+  (matching Android), and your deviation builds after a few nights of wear. (#166)
+- **Fixed (Mac and iOS):** the strap log no longer prints a stale **"layout v25/v26 … doesn't decode yet"**
+  warning for layouts NOOP decodes. (#156)
+- **Fixed (all platforms):** CSV export wrote the **disturbance count into "Awake duration (min)"** — the
+  cell is now empty rather than a wrong unit; **duplicate workouts** (imported + detected) are exported
+  once; free-text fields are guarded against **spreadsheet formula injection**; and a failed export on
+  macOS can no longer **destroy the previous export file** (atomic swap).
+
+---
+
 ## 2.3.0 — HR from the optical waveform, an early-morning day rollover, and clearer terms
 
 - **New (Mac, iOS and Android):** on **WHOOP 5.0/MG**, NOOP now derives a **per-second heart rate from the

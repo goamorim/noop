@@ -54,7 +54,10 @@ class WhoopCsvExporterTest {
         assertEquals("210", row["light_sleep_duration_min"])
         assertEquals("95", row["deep_sws_duration_min"])
         assertEquals("115", row["rem_duration_min"])
-        assertEquals("35", row["awake_duration_min"])
+        // Awake duration is MINUTES and the Android daily row doesn't carry it — the cell must be
+        // EMPTY, not the disturbance count (a wrong unit that round-tripped on reimport; PR #97
+        // review, tigercraft4).
+        assertEquals("", row["awake_duration_min"].orEmpty())
         assertEquals("92.3", row["sleep_efficiency_pct"])
         // Source column is present but ignored on import.
         assertEquals("import", row["source"])

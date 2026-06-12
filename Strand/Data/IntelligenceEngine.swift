@@ -151,11 +151,15 @@ final class IntelligenceEngine: ObservableObject {
         // baseline object is present — a CALIBRATING (<4-night) baseline would let one noisy
         // RSA night move recovery (mirrors the skin-temp use-site gate; honest cold-start).
         let respFold = Baselines.foldHistory(respSeq, cfg: respCfg)
+        // Skin-temp gated the same way for consistency: its only use-site re-checks `.usable`
+        // (AnalyticsEngine's skinTempDevC guard) so this is belt-and-suspenders, but it stops a
+        // future use-site from trusting a CALIBRATING baseline. (PR #97 review.)
+        let skinFold = Baselines.foldHistory(skinSeq, cfg: skinCfg)
         let baselines2 = AnalyticsEngine.ProfileBaselines(
             hrv: Baselines.foldHistory(hrvSeq, cfg: hrvCfg),
             restingHR: Baselines.foldHistory(rhrSeq, cfg: rhrCfg),
             resp: respFold.usable ? respFold : nil,
-            skinTemp: Baselines.foldHistory(skinSeq, cfg: skinCfg))
+            skinTemp: skinFold.usable ? skinFold : nil)
 
         // Real (non-detected) workouts in the scored window, used to de-duplicate detected bouts so a
         // user who BOTH has real sessions AND wears the strap doesn't see the same session twice (the
