@@ -13,9 +13,15 @@ cd "$(dirname "$0")/.."
 VR_TEAM_ID="${VR_TEAM_ID:-757M2JFL73}"
 SCHEME="NOOPiOS"
 
-# Resolve the connected iPhone's CoreDevice UDID.
-DEVICE_ID="$(xcrun devicectl list devices 2>/dev/null \
-  | awk '/connected/ && /iPhone/ {print $(NF-2); exit}')"
+# Resolve the connected iPhone's hardware UDID (e.g. 00008150-001415260C6A401C).
+# xcodebuild's -destination wants this hardware UDID, and devicectl accepts it too
+# (it resolves to the CoreDevice internally), so one id drives both steps.
+# NB: parse xctrace, not `devicectl list ... | awk '{print $(NF-2)}'` — a device named
+# "Goncalo's iPhone 17 Pro" with model "iPhone 17 Pro (...)" shifts the columns and that
+# awk grabbed the literal "17", producing `-destination id=17` and a build failure.
+DEVICE_ID="$(xcrun xctrace list devices 2>&1 \
+  | grep -i 'iphone' | grep -vi 'simulator' \
+  | grep -oE '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}' | head -1)"
 if [[ -z "$DEVICE_ID" ]]; then
   echo "✗ No connected iPhone found. Plug it in / unlock it and retry."
   exit 1
